@@ -4,9 +4,7 @@ fun thrice(fn) {
   }
 }
 
-print(fun (n) {
-  return n - 1;
-}(28));
+(fun () {});
 
 thrice(fun (a) {
   print(a);

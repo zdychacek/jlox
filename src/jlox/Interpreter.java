@@ -104,13 +104,6 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   @Override
-  public Void visitFunctionStmt(Stmt.Function stmt) {
-    LoxFunction function = new LoxFunction(stmt, environment);
-    environment.define(stmt.name.lexeme, function);
-    return null;
-  }
-
-  @Override
   public Void visitIfStmt(Stmt.If stmt) {
     if (isTruthy(evaluate(stmt.condition))) {
       execute(stmt.thenBranch);
@@ -226,16 +219,16 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Object visitCallExpr(Expr.Call expr) {
     Object callee = evaluate(expr.callee);
 
-    List<Object> arguments = new ArrayList<>();
-    for (Expr argument : expr.arguments) {
-      arguments.add(evaluate(argument));
-    }
-
     if (!(callee instanceof LoxCallable)) {
       throw new RuntimeError(expr.paren, "Can only call functions and classes.");
     }
 
     LoxCallable function = (LoxCallable) callee;
+
+    List<Object> arguments = new ArrayList<>();
+    for (Expr argument : expr.arguments) {
+      arguments.add(evaluate(argument));
+    }
 
     if (arguments.size() != function.arity()) {
       throw new RuntimeError(expr.paren,
@@ -243,6 +236,18 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     return function.call(this, arguments);
+  }
+
+  @Override
+  public Void visitFunctionStmt(Stmt.Function stmt) {
+    LoxFunction function = new LoxFunction(stmt, environment);
+    environment.define(stmt.name.lexeme, function);
+    return null;
+  }
+
+  @Override
+  public Object visitFunctionExpr(Expr.Function expr) {
+    return new LoxFunction(expr, environment);
   }
 
   @Override

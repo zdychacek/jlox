@@ -36,7 +36,7 @@ class Parser {
       if (match(VAR))
         return varDeclaration();
       if (match(FUN))
-        return function("function");
+        return functionStatement("function");
 
       return statement();
     } catch (ParseError error) {
@@ -184,10 +184,7 @@ class Parser {
     return new Stmt.Expression(expr);
   }
 
-  private Stmt.Function function(String kind) {
-    Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
-
-    consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+  private List<Token> parseFunctionParams() {
     List<Token> parameters = new ArrayList<>();
     if (!check(RIGHT_PAREN)) {
       do {
@@ -198,12 +195,44 @@ class Parser {
         parameters.add(consume(IDENTIFIER, "Expect parameter name."));
       } while (match(COMMA));
     }
+
+    return parameters;
+  }
+
+  private Stmt.Function functionStatement(String kind) {
+    Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
+
+    consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+
+    List<Token> params = parseFunctionParams();
+
     consume(RIGHT_PAREN, "Expect ')' after parameters.");
 
     consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
     List<Stmt> body = block();
 
-    return new Stmt.Function(name, parameters, body);
+    return new Stmt.Function(name, params, body);
+  }
+
+  private Expr.Function functionExpression() {
+    Token name = null;
+
+    if (match(IDENTIFIER)) {
+      name = previous();
+    } else {
+      name = new Token(TokenType.IDENTIFIER, "<anonymous>", null, previous().line);
+    }
+
+    consume(LEFT_PAREN, "Expect '(' after function name.");
+
+    List<Token> params = parseFunctionParams();
+
+    consume(RIGHT_PAREN, "Expect ')' after parameters.");
+
+    consume(LEFT_BRACE, "Expect '{' before function body.");
+    List<Stmt> body = block();
+
+    return new Expr.Function(name, params, body);
   }
 
   private List<Stmt> block() {
@@ -354,11 +383,11 @@ class Parser {
       return new Expr.Literal(true);
     if (match(NIL))
       return new Expr.Literal(null);
-
     if (match(NUMBER, STRING)) {
       return new Expr.Literal(previous().literal);
     }
-
+    if (match(FUN))
+      return functionExpression();
     if (match(IDENTIFIER)) {
       return new Expr.Variable(previous());
     }
