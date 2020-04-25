@@ -28,8 +28,8 @@ public class GenerateAst {
 
     defineAst(outputDir, "Stmt", Arrays.asList(
       "Block      : List<Stmt> statements",
-      "Break      : Token name",
-      "Continue   : Token name",
+      "Break      : Token keyword",
+      "Continue   : Token keyword",
       "Expression : Expr expression",
       "Function   : Token name, List<Token> params, List<Stmt> body",
       "Return     : Token keyword, Expr value",

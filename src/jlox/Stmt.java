@@ -37,8 +37,8 @@ abstract class Stmt {
   }
 
   static class Break extends Stmt {
-    Break(Token name) {
-      this.name = name;
+    Break(Token keyword) {
+      this.keyword = keyword;
     }
 
     @Override
@@ -46,12 +46,12 @@ abstract class Stmt {
       return visitor.visitBreakStmt(this);
     }
 
-    final Token name;
+    final Token keyword;
   }
 
   static class Continue extends Stmt {
-    Continue(Token name) {
-      this.name = name;
+    Continue(Token keyword) {
+      this.keyword = keyword;
     }
 
     @Override
@@ -59,7 +59,7 @@ abstract class Stmt {
       return visitor.visitContinueStmt(this);
     }
 
-    final Token name;
+    final Token keyword;
   }
 
   static class Expression extends Stmt {

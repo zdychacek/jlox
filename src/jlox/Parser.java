@@ -12,7 +12,6 @@ class Parser {
 
   private final List<Token> tokens;
   private int current = 0;
-  private boolean isInsideLoop = false;
 
   Parser(List<Token> tokens) {
     this.tokens = tokens;
@@ -67,9 +66,6 @@ class Parser {
   private Stmt breakStatement() {
     Token token = previous();
 
-    if (!isInsideLoop) {
-      Lox.error(token, "Break statement can be used only inside loops.");
-    }
     consume(SEMICOLON, "Expect ';' after break statement.");
 
     return new Stmt.Break(token);
@@ -78,9 +74,6 @@ class Parser {
   private Stmt continueStatement() {
     Token token = previous();
 
-    if (!isInsideLoop) {
-      Lox.error(token, "Continue statement can be used only inside loops.");
-    }
     consume(SEMICOLON, "Expect ';' after continue statement.");
 
     return new Stmt.Continue(token);
@@ -110,9 +103,7 @@ class Parser {
     }
     consume(RIGHT_PAREN, "Expect ')' after for clauses.");
 
-    isInsideLoop = true;
     Stmt body = statement();
-    isInsideLoop = false;
 
     if (increment != null) {
       body = new Stmt.Block(Arrays.asList(body, new Stmt.Expression(increment)));
@@ -120,6 +111,7 @@ class Parser {
 
     if (condition == null)
       condition = new Expr.Literal(true);
+
     body = new Stmt.While(condition, body);
 
     if (initializer != null) {
@@ -171,9 +163,7 @@ class Parser {
     Expr condition = expression();
     consume(RIGHT_PAREN, "Expect ')' after condition.");
 
-    isInsideLoop = true;
     Stmt body = statement();
-    isInsideLoop = false;
 
     return new Stmt.While(condition, body);
   }
@@ -219,8 +209,6 @@ class Parser {
 
     if (match(IDENTIFIER)) {
       name = previous();
-    } else {
-      name = new Token(TokenType.IDENTIFIER, "<anonymous>", null, previous().line);
     }
 
     consume(LEFT_PAREN, "Expect '(' after function name.");
