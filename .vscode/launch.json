@@ -16,7 +16,7 @@
       "request": "launch",
       "mainClass": "jlox.Lox",
       "projectName": "jlox",
-      "args": ["./fixtures/4.lox"]
+      "args": ["./fixtures/test.lox"]
     },
     {
       "type": "java",
