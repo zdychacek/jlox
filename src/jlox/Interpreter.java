@@ -5,6 +5,18 @@ import java.util.List;
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   private Environment environment = new Environment();
 
+  enum JumpType {
+    BREAK, CONTINUE
+  }
+
+  class Jump extends RuntimeException {
+    JumpType type;
+
+    Jump(JumpType type) {
+      this.type = type;
+    }
+  }
+
   void interpret(List<Stmt> statements) {
     try {
       for (Stmt statement : statements) {
@@ -21,6 +33,21 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   @Override
+  public Object visitLogicalExpr(Expr.Logical expr) {
+    Object left = evaluate(expr.left);
+
+    if (expr.operator.type == TokenType.OR) {
+      if (isTruthy(left))
+        return left;
+    } else {
+      if (!isTruthy(left))
+        return left;
+    }
+
+    return evaluate(expr.right);
+  }
+
+  @Override
   public Object visitGroupingExpr(Expr.Grouping expr) {
     return evaluate(expr.expression);
   }
@@ -28,6 +55,16 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   @Override
   public Void visitExpressionStmt(Stmt.Expression stmt) {
     evaluate(stmt.expression);
+    return null;
+  }
+
+  @Override
+  public Void visitIfStmt(Stmt.If stmt) {
+    if (isTruthy(evaluate(stmt.condition))) {
+      execute(stmt.thenBranch);
+    } else if (stmt.elseBranch != null) {
+      execute(stmt.elseBranch);
+    }
     return null;
   }
 
@@ -47,6 +84,34 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     environment.define(stmt.name.lexeme, value);
     return null;
+  }
+
+  @Override
+  public Void visitWhileStmt(Stmt.While stmt) {
+    while (isTruthy(evaluate(stmt.condition))) {
+      try {
+        execute(stmt.body);
+
+      } catch (Jump jump) {
+        if (jump.type == JumpType.BREAK) {
+          break;
+        } else if (jump.type == JumpType.CONTINUE) {
+          continue;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  @Override
+  public Void visitBreakStmt(Stmt.Break stmt) {
+    throw new Jump(JumpType.BREAK);
+  }
+
+  @Override
+  public Void visitContinueStmt(Stmt.Continue stmt) {
+    throw new Jump(JumpType.CONTINUE);
   }
 
   @Override

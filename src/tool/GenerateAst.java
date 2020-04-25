@@ -19,15 +19,20 @@ public class GenerateAst {
       "Binary   : Expr left, Token operator, Expr right",
       "Grouping : Expr expression",
       "Literal  : Object value",
+      "Logical  : Expr left, Token operator, Expr right",
       "Unary    : Token operator, Expr right",
       "Variable : Token name"
     ));
 
     defineAst(outputDir, "Stmt", Arrays.asList(
       "Block      : List<Stmt> statements",
+      "Break      : Token name",
+      "Continue   : Token name",
       "Expression : Expr expression",
       "Print      : Expr expression",
-      "Var        : Token name, Expr initializer"
+      "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
+      "Var        : Token name, Expr initializer",
+      "While      : Expr condition, Stmt body"
     ));
     /* @formatter:on */
   }
