@@ -10,8 +10,30 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     NONE, FUNCTION
   }
 
+  private enum VariableState {
+    DECLARED, DEFINED
+  }
+
+  private enum DeclarationKind {
+    FUNCTION, VARIABLE, PARAMETER
+  }
+
+  private class Declaration {
+    VariableState state;
+    Token name;
+    Boolean isReferenced;
+    DeclarationKind kind;
+
+    Declaration(VariableState state, Token name, Boolean isReferenced, DeclarationKind kind) {
+      this.state = state;
+      this.name = name;
+      this.kind = kind;
+      this.isReferenced = isReferenced;
+    }
+  }
+
   private final Interpreter interpreter;
-  private final Stack<Map<String, Boolean>> scopes = new Stack<>();
+  private final Stack<Map<String, Declaration>> scopes = new Stack<>();
   private FunctionType currentFunction = FunctionType.NONE;
   private boolean isInsideLoop = false;
 
@@ -28,8 +50,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private void _resolveFunction(List<Token> params, List<Stmt> body) {
     beginScope();
     for (Token param : params) {
-      declare(param);
-      define(param);
+      declare(param, DeclarationKind.PARAMETER);
+      define(param, DeclarationKind.PARAMETER);
     }
     resolve(body);
     endScope();
@@ -69,8 +91,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitFunctionStmt(Stmt.Function stmt) {
-    declare(stmt.name);
-    define(stmt.name);
+    declare(stmt.name, DeclarationKind.FUNCTION);
+    define(stmt.name, DeclarationKind.FUNCTION);
 
     resolveFunction(stmt, FunctionType.FUNCTION);
     return null;
@@ -113,11 +135,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitVarStmt(Stmt.Var stmt) {
-    declare(stmt.name);
+    declare(stmt.name, DeclarationKind.VARIABLE);
     if (stmt.initializer != null) {
       resolve(stmt.initializer);
     }
-    define(stmt.name);
+    define(stmt.name, DeclarationKind.VARIABLE);
     return null;
   }
 
@@ -190,7 +212,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitVariableExpr(Expr.Variable expr) {
-    if (!scopes.isEmpty() && scopes.peek().get(expr.name.lexeme) == false) {
+    if (!scopes.isEmpty() && scopes.peek().get(expr.name.lexeme) != null
+        && scopes.peek().get(expr.name.lexeme).state == VariableState.DECLARED) {
       Lox.error(expr.name, "Cannot read local variable in its own initializer.");
     }
 
@@ -201,8 +224,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   @Override
   public Void visitFunctionExpr(Expr.Function expr) {
     if (expr.name != null) {
-      declare(expr.name);
-      define(expr.name);
+      declare(expr.name, DeclarationKind.FUNCTION);
+      define(expr.name, DeclarationKind.FUNCTION);
     }
 
     resolveFunction(expr);
@@ -218,35 +241,58 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   }
 
   private void beginScope() {
-    scopes.push(new HashMap<String, Boolean>());
+    scopes.push(new HashMap<String, Declaration>());
   }
 
   private void endScope() {
-    scopes.pop();
+    Map<String, Declaration> scope = scopes.pop();
+
+    scope.forEach((key, declaration) -> {
+      String kind = "";
+
+      switch (declaration.kind) {
+        case FUNCTION:
+          kind = "function";
+          break;
+        case PARAMETER:
+          kind = "parameter";
+          break;
+        case VARIABLE:
+          kind = "variable";
+          break;
+      }
+
+      if (!declaration.isReferenced) {
+        Lox.error(declaration.name, "Unused " + kind + ".");
+      }
+    });
   }
 
-  private void declare(Token name) {
+  private void declare(Token name, DeclarationKind kind) {
     if (scopes.isEmpty())
       return;
 
-    Map<String, Boolean> scope = scopes.peek();
+    Map<String, Declaration> scope = scopes.peek();
 
     if (scope.containsKey(name.lexeme)) {
       Lox.error(name, "Variable with this name already declared in this scope.");
     }
 
-    scope.put(name.lexeme, false);
+    scope.put(name.lexeme, new Declaration(VariableState.DECLARED, name, false, kind));
   }
 
-  private void define(Token name) {
+  private void define(Token name, DeclarationKind kind) {
     if (scopes.isEmpty())
       return;
-    scopes.peek().put(name.lexeme, true);
+
+    scopes.peek().put(name.lexeme, new Declaration(VariableState.DEFINED, name, false, kind));
   }
 
   private void resolveLocal(Expr expr, Token name) {
     for (int i = scopes.size() - 1; i >= 0; i--) {
       if (scopes.get(i).containsKey(name.lexeme)) {
+        scopes.get(i).get(name.lexeme).isReferenced = true;
+
         interpreter.resolve(expr, scopes.size() - 1 - i);
         return;
       }

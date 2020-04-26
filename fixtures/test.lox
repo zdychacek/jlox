@@ -1,10 +1,18 @@
-var a = "global";
 {
-  fun showA() {
+  var foo = "foo";
+  var bar = "bar";
+
+  fun baz () {}
+
+  (fun (a, b) {
     print(a);
+  }());
+
+  {
+    var foo = 1;
+
+    print(foo);
   }
 
-  showA();
-  var a = "block";
-  showA();
+  print(bar);
 }
