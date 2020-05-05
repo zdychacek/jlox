@@ -1,18 +1,17 @@
-{
-  var foo = "foo";
-  var bar = "bar";
-
-  fun baz () {}
-
-  (fun (a, b) {
-    print(a);
-  }());
-
-  {
-    var foo = 1;
-
-    print(foo);
+class Thing {
+  init(name) {
+    this.name = name;
   }
+  getCallback() {
+    fun localFunction() {
+      print(this.name);
+    }
 
-  print(bar);
+    return localFunction;
+  }
 }
+
+var me = Thing("Ondrej");
+var callback = me.getCallback();
+
+callback();

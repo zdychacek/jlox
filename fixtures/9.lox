@@ -1,0 +1,18 @@
+{
+  var foo = "foo";
+  var bar = "bar";
+
+  fun baz () {}
+
+  (fun (a, b) {
+    print(a);
+  }());
+
+  {
+    var foo = 1;
+
+    print(foo);
+  }
+
+  print(bar);
+}
