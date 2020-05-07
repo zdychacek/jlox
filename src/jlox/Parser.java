@@ -35,8 +35,8 @@ class Parser {
       if (match(CLASS))
         return classDeclaration();
       if (match(VAR))
-        return varDeclaration();
-      if (match(FUN))
+        return varDeclaration(false);
+      if (match(FN))
         return functionStatement("function");
 
       return statement();
@@ -51,13 +51,29 @@ class Parser {
     consume(LEFT_BRACE, "Expect '{' before class body.");
 
     List<Stmt.Function> methods = new ArrayList<>();
+    List<Stmt.Var> fields = new ArrayList<>();
+
     while (!check(RIGHT_BRACE) && !isAtEnd()) {
-      methods.add(functionStatement("method"));
+      if (match(VAR)) {
+        fields.add(varDeclaration(true));
+      } else if (match(FN)) {
+        if (peek().lexeme.equals("init")) {
+          Lox.error(previous(), "Constructor must be defined without `fn` prefix.");
+        } else {
+          methods.add(functionStatement("method"));
+        }
+      } else if (peek().type == TokenType.IDENTIFIER && peek().lexeme.equals("init"))
+        methods.add(functionStatement("method"));
+      else {
+        // TODO: fix synchronization
+        Lox.error(peek(), "Expect constructor, method or field definition.");
+        return null;
+      }
     }
 
     consume(RIGHT_BRACE, "Expect '}' after class body.");
 
-    return new Stmt.Class(name, methods);
+    return new Stmt.Class(name, fields, methods);
   }
 
   private Stmt statement() {
@@ -102,7 +118,7 @@ class Parser {
     if (match(SEMICOLON)) {
       initializer = null;
     } else if (match(VAR)) {
-      initializer = varDeclaration();
+      initializer = varDeclaration(false);
     } else {
       initializer = expressionStatement();
     }
@@ -162,7 +178,7 @@ class Parser {
     return new Stmt.Return(keyword, value);
   }
 
-  private Stmt varDeclaration() {
+  private Stmt.Var varDeclaration(Boolean isMethodDeclaration) {
     Token name = consume(IDENTIFIER, "Expect variable name.");
 
     Expr initializer = null;
@@ -171,7 +187,7 @@ class Parser {
     }
 
     consume(SEMICOLON, "Expect ';' after variable declaration.");
-    return new Stmt.Var(name, initializer);
+    return new Stmt.Var(name, initializer, isMethodDeclaration);
   }
 
   private Stmt whileStatement() {
@@ -396,7 +412,7 @@ class Parser {
     if (match(NUMBER, STRING)) {
       return new Expr.Literal(previous().literal);
     }
-    if (match(FUN))
+    if (match(FN))
       return functionExpression();
     if (match(THIS))
       return new Expr.This(previous());
@@ -469,7 +485,7 @@ class Parser {
 
       switch (peek().type) {
         case CLASS:
-        case FUN:
+        case FN:
         case VAR:
         case FOR:
         case IF:

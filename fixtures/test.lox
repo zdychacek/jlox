@@ -1,17 +1,14 @@
-class Thing {
-  init(name) {
-    this.name = name;
-  }
-  getCallback() {
-    fun localFunction() {
-      print(this.name);
-    }
+class Person {
+  var name = "";
+  var age = 0;
 
-    return localFunction;
+  init() {}
+
+  fn hello() {
+    print("Hello, my name is " + toString(name) + " and I am " + toString(age) + " years old.");
   }
 }
 
-var me = Thing("Ondrej");
-var callback = me.getCallback();
+var me = Person();
 
-callback();
+me.hello();

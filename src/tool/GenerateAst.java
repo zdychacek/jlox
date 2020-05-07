@@ -31,14 +31,14 @@ public class GenerateAst {
 
     defineAst(outputDir, "Stmt", Arrays.asList(
       "Block      : List<Stmt> statements",
-      "Class      : Token name, List<Stmt.Function> methods",
+      "Class      : Token name, List<Stmt.Var> fields, List<Stmt.Function> methods",
       "Break      : Token keyword",
       "Continue   : Token keyword",
       "Expression : Expr expression",
       "Function   : Token name, List<Token> params, List<Stmt> body",
       "Return     : Token keyword, Expr value",
       "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
-      "Var        : Token name, Expr initializer",
+      "Var        : Token name, Expr initializer, Boolean isMethodDeclaration",
       "While      : Expr condition, Stmt body"
     ));
     /* @formatter:on */

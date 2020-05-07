@@ -145,6 +145,10 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitVarStmt(Stmt.Var stmt) {
+    if (stmt.isMethodDeclaration) {
+      return null;
+    }
+
     Object value = null;
     if (stmt.initializer != null) {
       value = evaluate(stmt.initializer);
@@ -327,6 +331,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Void visitClassStmt(Stmt.Class stmt) {
     environment.define(stmt.name.lexeme, null);
 
+    // environment = new Environment(environment);
+
     Map<String, LoxFunction> methods = new HashMap<>();
     for (Stmt.Function method : stmt.methods) {
       LoxFunction function = new LoxFunction(method.name, method.params, method.body, environment,
@@ -334,7 +340,22 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       methods.put(method.name.lexeme, function);
     }
 
-    LoxClass klass = new LoxClass(stmt.name.lexeme, methods);
+    List<String> fields = new ArrayList<>();
+
+    stmt.fields.forEach(field -> {
+      Object value = null;
+      if (field.initializer != null) {
+        value = evaluate(field.initializer);
+      }
+
+      environment.define(field.name.lexeme, value);
+
+      fields.add(field.name.lexeme);
+    });
+
+    LoxClass klass = new LoxClass(stmt.name.lexeme, fields, methods);
+
+    // environment = environment.enclosing;
 
     environment.assign(stmt.name, klass);
     return null;

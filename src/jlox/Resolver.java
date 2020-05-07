@@ -99,6 +99,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     beginScope();
     scopes.peek().put("this", new Declaration(VariableState.DEFINED, null, false, DeclarationKind.VARIABLE));
 
+    for (Stmt.Var field : stmt.fields) {
+      scopes.peek().put(field.name.lexeme,
+          new Declaration(VariableState.DEFINED, null, false, DeclarationKind.VARIABLE));
+    }
+
     for (Stmt.Function method : stmt.methods) {
       FunctionType declaration = FunctionType.METHOD;
 
@@ -108,7 +113,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
       resolveFunction(method, declaration);
     }
-
     endScope();
 
     currentClass = enclosingClass;

@@ -6,9 +6,11 @@ import java.util.Map;
 class LoxClass implements LoxCallable {
   final String name;
   private final Map<String, LoxFunction> methods;
+  private final List<String> fields;
 
-  LoxClass(String name, Map<String, LoxFunction> methods) {
+  LoxClass(String name, List<String> fields, Map<String, LoxFunction> methods) {
     this.name = name;
+    this.fields = fields;
     this.methods = methods;
   }
 
@@ -18,6 +20,14 @@ class LoxClass implements LoxCallable {
     }
 
     return null;
+  }
+
+  public Boolean containsField(String fieldName) {
+    return fields.contains(fieldName);
+  }
+
+  public List<String> getFields() {
+    return fields;
   }
 
   @Override

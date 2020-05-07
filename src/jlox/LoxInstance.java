@@ -9,6 +9,9 @@ class LoxInstance {
 
   LoxInstance(LoxClass klass) {
     this.klass = klass;
+
+    // TODO: create `LoxProperty` class with name and initializer
+    this.klass.getFields().forEach(field -> fields.put(field, "huhu"));
   }
 
   Object get(Token name) {
