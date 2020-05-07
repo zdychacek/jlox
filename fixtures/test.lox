@@ -1,3 +1,15 @@
+var a = "global";
+{
+  fun showA() {
+    print(a);
+  }
+
+  showA();
+  var a = "block";
+  showA();
+}
+
+
 fun makeCounter() {
   var i = 0;
   fun count() {
@@ -11,3 +23,4 @@ fun makeCounter() {
 var counter = makeCounter();
 counter(); // "1".
 counter(); // "2".
+counter(); // "3".

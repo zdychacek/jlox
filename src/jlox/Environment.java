@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 class Environment {
-  final Environment enclosing;
-  private final Map<String, Object> values = new HashMap<>();
+  Environment enclosing;
+  private Map<String, Object> values = new HashMap<>();
 
   Environment() {
     enclosing = null;
@@ -40,7 +40,13 @@ class Environment {
     throw new RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
   }
 
-  void define(String name, Object value) {
-    values.put(name, value);
+  Environment define(String name, Object value) {
+    Environment newEnv = new Environment();
+
+    newEnv.enclosing = this.enclosing;
+    newEnv.values = new HashMap<>(this.values);
+    newEnv.values.put(name, value);
+
+    return newEnv;
   }
 }
