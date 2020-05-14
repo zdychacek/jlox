@@ -18,9 +18,7 @@ class LoxFunction implements LoxCallable {
   }
 
   LoxFunction bind(LoxInstance instance) {
-    Environment environment = new Environment(closure);
-    environment.define("this", instance);
-    return new LoxFunction(name, params, body, environment, isInitializer);
+    return new LoxFunction(name, params, body, instance.getEnvironment(), isInitializer);
   }
 
   @Override
@@ -33,20 +31,21 @@ class LoxFunction implements LoxCallable {
     Environment environment = new Environment(closure);
 
     for (int i = 0; i < params.size(); i++) {
-      environment.define(params.get(i).lexeme, arguments.get(i));
+      environment = environment.define(params.get(i).lexeme, arguments.get(i));
     }
 
     try {
       interpreter.executeBlock(body, environment);
     } catch (Return returnValue) {
-      if (isInitializer)
-        return closure.getAt(0, "this");
+      if (isInitializer) {
+        return closure.get(new Token(TokenType.IDENTIFIER, "this", null, -1));
+      }
 
       return returnValue.value;
     }
 
     if (isInitializer)
-      return closure.getAt(0, "this");
+      return closure.get(new Token(TokenType.IDENTIFIER, "this", null, -1));
 
     return null;
   }

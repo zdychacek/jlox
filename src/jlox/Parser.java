@@ -35,7 +35,7 @@ class Parser {
       if (match(CLASS))
         return classDeclaration();
       if (match(VAR))
-        return varDeclaration(false);
+        return varDeclaration();
       if (match(FN))
         return functionStatement("function");
 
@@ -55,7 +55,7 @@ class Parser {
 
     while (!check(RIGHT_BRACE) && !isAtEnd()) {
       if (match(VAR)) {
-        fields.add(varDeclaration(true));
+        fields.add(varDeclaration());
       } else if (match(FN)) {
         if (peek().lexeme.equals("init")) {
           Lox.error(previous(), "Constructor must be defined without `fn` prefix.");
@@ -118,7 +118,7 @@ class Parser {
     if (match(SEMICOLON)) {
       initializer = null;
     } else if (match(VAR)) {
-      initializer = varDeclaration(false);
+      initializer = varDeclaration();
     } else {
       initializer = expressionStatement();
     }
@@ -178,7 +178,7 @@ class Parser {
     return new Stmt.Return(keyword, value);
   }
 
-  private Stmt.Var varDeclaration(Boolean isMethodDeclaration) {
+  private Stmt.Var varDeclaration() {
     Token name = consume(IDENTIFIER, "Expect variable name.");
 
     Expr initializer = null;
@@ -187,7 +187,7 @@ class Parser {
     }
 
     consume(SEMICOLON, "Expect ';' after variable declaration.");
-    return new Stmt.Var(name, initializer, isMethodDeclaration);
+    return new Stmt.Var(name, initializer);
   }
 
   private Stmt whileStatement() {

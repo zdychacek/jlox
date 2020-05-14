@@ -38,7 +38,7 @@ public class GenerateAst {
       "Function   : Token name, List<Token> params, List<Stmt> body",
       "Return     : Token keyword, Expr value",
       "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
-      "Var        : Token name, Expr initializer, Boolean isMethodDeclaration",
+      "Var        : Token name, Expr initializer",
       "While      : Expr condition, Stmt body"
     ));
     /* @formatter:on */

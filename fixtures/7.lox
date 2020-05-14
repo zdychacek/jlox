@@ -1,12 +1,12 @@
-fun thrice(fn) {
+fn thrice(fn) {
   for (var i = 1; i <= 3; i = i + 1) {
     fn(i);
   }
 }
 
-(fun () {});
+(fn () {});
 
-thrice(fun (a) {
+thrice(fn (a) {
   print(a);
 });
 // "1".

@@ -5,16 +5,26 @@ import java.util.List;
 abstract class Stmt {
   interface Visitor<R> {
     R visitBlockStmt(Block stmt);
+
     R visitClassStmt(Class stmt);
+
     R visitBreakStmt(Break stmt);
+
     R visitContinueStmt(Continue stmt);
+
     R visitExpressionStmt(Expression stmt);
+
     R visitFunctionStmt(Function stmt);
+
     R visitReturnStmt(Return stmt);
+
     R visitIfStmt(If stmt);
+
     R visitVarStmt(Var stmt);
+
     R visitWhileStmt(While stmt);
   }
+
   static class Block extends Stmt {
     Block(List<Stmt> statements) {
       this.statements = statements;
@@ -27,6 +37,7 @@ abstract class Stmt {
 
     final List<Stmt> statements;
   }
+
   static class Class extends Stmt {
     Class(Token name, List<Stmt.Var> fields, List<Stmt.Function> methods) {
       this.name = name;
@@ -43,6 +54,7 @@ abstract class Stmt {
     final List<Stmt.Var> fields;
     final List<Stmt.Function> methods;
   }
+
   static class Break extends Stmt {
     Break(Token keyword) {
       this.keyword = keyword;
@@ -55,6 +67,7 @@ abstract class Stmt {
 
     final Token keyword;
   }
+
   static class Continue extends Stmt {
     Continue(Token keyword) {
       this.keyword = keyword;
@@ -67,6 +80,7 @@ abstract class Stmt {
 
     final Token keyword;
   }
+
   static class Expression extends Stmt {
     Expression(Expr expression) {
       this.expression = expression;
@@ -79,6 +93,7 @@ abstract class Stmt {
 
     final Expr expression;
   }
+
   static class Function extends Stmt {
     Function(Token name, List<Token> params, List<Stmt> body) {
       this.name = name;
@@ -95,6 +110,7 @@ abstract class Stmt {
     final List<Token> params;
     final List<Stmt> body;
   }
+
   static class Return extends Stmt {
     Return(Token keyword, Expr value) {
       this.keyword = keyword;
@@ -109,6 +125,7 @@ abstract class Stmt {
     final Token keyword;
     final Expr value;
   }
+
   static class If extends Stmt {
     If(Expr condition, Stmt thenBranch, Stmt elseBranch) {
       this.condition = condition;
@@ -125,11 +142,11 @@ abstract class Stmt {
     final Stmt thenBranch;
     final Stmt elseBranch;
   }
+
   static class Var extends Stmt {
-    Var(Token name, Expr initializer, Boolean isMethodDeclaration) {
+    Var(Token name, Expr initializer) {
       this.name = name;
       this.initializer = initializer;
-      this.isMethodDeclaration = isMethodDeclaration;
     }
 
     @Override
@@ -139,8 +156,8 @@ abstract class Stmt {
 
     final Token name;
     final Expr initializer;
-    final Boolean isMethodDeclaration;
   }
+
   static class While extends Stmt {
     While(Expr condition, Stmt body) {
       this.condition = condition;

@@ -36,20 +36,17 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
   }
 
-  private final Interpreter interpreter;
   private final Stack<Map<String, Declaration>> scopes = new Stack<>();
   private FunctionType currentFunction = FunctionType.NONE;
   private ClassType currentClass = ClassType.NONE;
   private boolean isInsideLoop = false;
 
-  Resolver(Interpreter interpreter) {
-    this.interpreter = interpreter;
-  }
-
   void resolve(List<Stmt> statements) {
+    beginScope();
     for (Stmt statement : statements) {
       resolve(statement);
     }
+    endScope();
   }
 
   private void _resolveFunction(List<Token> params, List<Stmt> body) {
@@ -100,8 +97,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     scopes.peek().put("this", new Declaration(VariableState.DEFINED, null, false, DeclarationKind.VARIABLE));
 
     for (Stmt.Var field : stmt.fields) {
-      scopes.peek().put(field.name.lexeme,
-          new Declaration(VariableState.DEFINED, null, false, DeclarationKind.VARIABLE));
+      visitVarStmt(field);
     }
 
     for (Stmt.Function method : stmt.methods) {
@@ -229,6 +225,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   @Override
   public Void visitGetExpr(Expr.Get expr) {
     resolve(expr.object);
+    resolveLocal(expr, expr.name);
     return null;
   }
 
@@ -287,11 +284,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitFunctionExpr(Expr.Function expr) {
-    if (expr.name != null) {
-      declare(expr.name, DeclarationKind.FUNCTION);
-      define(expr.name, DeclarationKind.FUNCTION);
-    }
-
     resolveFunction(expr);
     return null;
   }
@@ -357,11 +349,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       if (scopes.get(i).containsKey(name.lexeme)) {
         scopes.get(i).get(name.lexeme).isReferenced = true;
 
-        interpreter.resolve(expr, scopes.size() - 1 - i);
         return;
       }
     }
-
-    // Not found. Assume it is global.
   }
 }

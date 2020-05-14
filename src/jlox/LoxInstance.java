@@ -1,33 +1,54 @@
 package jlox;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Map;
 
 class LoxInstance {
   private LoxClass klass;
-  private final Map<String, Object> fields = new HashMap<>();
+  private Environment env;
 
-  LoxInstance(LoxClass klass) {
+  LoxInstance(LoxClass klass, Interpreter interpreter) {
     this.klass = klass;
 
-    // TODO: create `LoxProperty` class with name and initializer
-    this.klass.getFields().forEach(field -> fields.put(field, "huhu"));
+    // create mutable environment
+    env = new Environment(interpreter.getEnvironment(), true);
+    env.define("this", this);
+
+    for (Map.Entry<String, LoxFunction> entry : klass.getMethods().entrySet()) {
+      env.define(entry.getKey(), entry.getValue());
+    }
+
+    Environment prevEnv = interpreter.setEnvironment(env);
+
+    interpreter.interpret(new ArrayList<>(klass.getFields().values()));
+
+    interpreter.setEnvironment(prevEnv);
   }
 
   Object get(Token name) {
-    if (fields.containsKey(name.lexeme)) {
-      return fields.get(name.lexeme);
-    }
+    if (env.has(name.lexeme)) {
+      Object property = env.get(name);
 
-    LoxFunction method = klass.findMethod(name.lexeme);
-    if (method != null)
-      return method.bind(this);
+      if (property instanceof LoxFunction) {
+        return ((LoxFunction) property).bind(this);
+      } else {
+        return property;
+      }
+    }
 
     throw new RuntimeError(name, "Undefined property '" + name.lexeme + "'.");
   }
 
   void set(Token name, Object value) {
-    fields.put(name.lexeme, value);
+    env.assign(name, value);
+  }
+
+  Environment getEnvironment() {
+    return this.env;
+  }
+
+  LoxClass getKlass() {
+    return klass;
   }
 
   @Override

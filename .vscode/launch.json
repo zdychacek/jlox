@@ -6,6 +6,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "CodeLens (Launch) - Test",
+      "request": "launch",
+      "mainClass": "jlox.Test",
+      "projectName": "jlox"
+    },
+    {
+      "type": "java",
       "name": "Debug (Launch) - Current File",
       "request": "launch",
       "mainClass": "${file}"
@@ -16,7 +23,9 @@
       "request": "launch",
       "mainClass": "jlox.Lox",
       "projectName": "jlox",
-      "args": ["./fixtures/test.lox"]
+      "args": [
+        "./fixtures/test.lox"
+      ]
     },
     {
       "type": "java",
@@ -24,7 +33,9 @@
       "request": "launch",
       "mainClass": "tool.GenerateAst",
       "projectName": "jlox",
-      "args": ["./src/jlox"]
+      "args": [
+        "./src/jlox"
+      ]
     }
   ]
 }

@@ -4,18 +4,26 @@ import java.util.HashMap;
 import java.util.Map;
 
 class Environment {
-  final Environment enclosing;
-  private final Map<String, Object> values = new HashMap<>();
+  Environment enclosing;
+  private Map<String, Object> values = new HashMap<>();
+  private boolean isMutable;
 
   Environment() {
     enclosing = null;
+    isMutable = false;
   }
 
   Environment(Environment enclosing) {
     this.enclosing = enclosing;
+    this.isMutable = false;
   }
 
-  Object get(Token name) {
+  Environment(Environment enclosing, boolean isMutable) {
+    this.enclosing = enclosing;
+    this.isMutable = isMutable;
+  }
+
+  public Object get(Token name) {
     if (values.containsKey(name.lexeme)) {
       return values.get(name.lexeme);
     }
@@ -26,7 +34,7 @@ class Environment {
     throw new RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
   }
 
-  void assign(Token name, Object value) {
+  public void assign(Token name, Object value) {
     if (values.containsKey(name.lexeme)) {
       values.put(name.lexeme, value);
       return;
@@ -40,24 +48,32 @@ class Environment {
     throw new RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
   }
 
-  void define(String name, Object value) {
-    values.put(name, value);
+  public boolean has(String key) {
+    return values.containsKey(key);
   }
 
-  Object getAt(int distance, String name) {
-    return ancestor(distance).values.get(name);
-  }
+  public Environment define(String name, Object value) {
+    if (!isMutable) {
+      Environment newEnv = new Environment();
 
-  void assignAt(int distance, Token name, Object value) {
-    ancestor(distance).values.put(name.lexeme, value);
-  }
+      newEnv.enclosing = this.enclosing;
+      newEnv.values = new HashMap<>(this.values);
+      newEnv.values.put(name, value);
 
-  Environment ancestor(int distance) {
-    Environment environment = this;
-    for (int i = 0; i < distance; i++) {
-      environment = environment.enclosing;
+      return newEnv;
     }
 
-    return environment;
+    values.put(name, value);
+
+    return this;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder strBuilder = new StringBuilder();
+
+    values.forEach((key, value) -> strBuilder.append(key + ":" + value + "\n"));
+
+    return strBuilder.toString();
   }
 }

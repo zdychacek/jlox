@@ -2,9 +2,9 @@
   var foo = "foo";
   var bar = "bar";
 
-  fun baz () {}
+  fn baz () {}
 
-  (fun (a, b) {
+  (fn (a, b) {
     print(a);
   }());
 

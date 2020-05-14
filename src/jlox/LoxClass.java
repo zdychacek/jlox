@@ -6,9 +6,9 @@ import java.util.Map;
 class LoxClass implements LoxCallable {
   final String name;
   private final Map<String, LoxFunction> methods;
-  private final List<String> fields;
+  private final Map<String, Stmt.Var> fields;
 
-  LoxClass(String name, List<String> fields, Map<String, LoxFunction> methods) {
+  LoxClass(String name, Map<String, Stmt.Var> fields, Map<String, LoxFunction> methods) {
     this.name = name;
     this.fields = fields;
     this.methods = methods;
@@ -22,17 +22,25 @@ class LoxClass implements LoxCallable {
     return null;
   }
 
-  public Boolean containsField(String fieldName) {
-    return fields.contains(fieldName);
+  Stmt.Var findField(String name) {
+    if (fields.containsKey(name)) {
+      return fields.get(name);
+    }
+
+    return null;
   }
 
-  public List<String> getFields() {
+  Map<String, Stmt.Var> getFields() {
     return fields;
+  }
+
+  Map<String, LoxFunction> getMethods() {
+    return methods;
   }
 
   @Override
   public Object call(Interpreter interpreter, List<Object> arguments) {
-    LoxInstance instance = new LoxInstance(this);
+    LoxInstance instance = new LoxInstance(this, interpreter);
     LoxFunction initializer = findMethod("init");
     if (initializer != null) {
       initializer.bind(instance).call(interpreter, arguments);

@@ -1,14 +1,38 @@
-class Person {
-  var name = "";
-  var age = 0;
+//var huhu;
 
-  init() {}
+class Person {
+  var name = "noname";
+  var foo = 31;
+  var age = this.foo + this.getAge();
+
+  init(name_, age_) {
+    this.name = name_;
+    age = age_;
+  }
 
   fn hello() {
-    print("Hello, my name is " + toString(name) + " and I am " + toString(age) + " years old.");
+    print("Hello, my name is " + toString(name) + " and I am " + toString(this.age) + " years old.");
+  }
+
+  fn fork() {
+    (fn () {
+      print(this.name);
+      print(this.foo);
+    })();
+
+    return Person("Tereza", 30);
+  }
+
+  fn getAge() {
+    return getOne();
+
+  }
+  fn getOne() {
+    return 1;
   }
 }
 
-var me = Person();
+var me = Person("Ondrej", 32);
 
 me.hello();
+print(me.fork());
