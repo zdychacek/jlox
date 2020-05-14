@@ -1,11 +1,11 @@
 package jlox;
 
 class LoxField {
-  final Token name;
-  final Expr initializer;
+  final Stmt.Var stmt;
+  final Visibility visibility;
 
-  LoxField(Token name, Expr initializer) {
-    this.name = name;
-    this.initializer = initializer;
+  LoxField(Stmt.Var stmt) {
+    this.stmt = stmt;
+    this.visibility = stmt.visibility;
   }
 }

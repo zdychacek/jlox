@@ -1,11 +1,12 @@
 package jlox;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
+class Resolver implements Expr.IVisitor<Void>, Stmt.IVisitor<Void> {
   private enum FunctionType {
     NONE, FUNCTION, METHOD, INITIALIZER
   }
@@ -18,21 +19,19 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     DECLARED, DEFINED
   }
 
-  private enum DeclarationKind {
-    FUNCTION, VARIABLE, PARAMETER, CLASS
-  }
-
   private class Declaration {
+    IDeclarator declarator;
+    List<Expr> refs;
     VariableState state;
-    Token name;
-    Boolean isReferenced;
-    DeclarationKind kind;
 
-    Declaration(VariableState state, Token name, Boolean isReferenced, DeclarationKind kind) {
+    Declaration(VariableState state, IDeclarator declarator, Boolean isReferenced) {
       this.state = state;
-      this.name = name;
-      this.kind = kind;
-      this.isReferenced = isReferenced;
+      this.declarator = declarator;
+      this.refs = new ArrayList<>();
+    }
+
+    Token getDeclaratorName() {
+      return declarator.getName();
     }
   }
 
@@ -49,11 +48,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     endScope();
   }
 
-  private void _resolveFunction(List<Token> params, List<Stmt> body) {
+  private void _resolveFunction(List<Stmt.FunctionParameter> params, List<Stmt> body) {
     beginScope();
-    for (Token param : params) {
-      declare(param, DeclarationKind.PARAMETER);
-      define(param, DeclarationKind.PARAMETER);
+    for (Stmt.FunctionParameter param : params) {
+      resolve(param);
     }
     resolve(body);
     endScope();
@@ -90,17 +88,20 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     ClassType enclosingClass = currentClass;
     currentClass = ClassType.CLASS;
 
-    declare(stmt.name, DeclarationKind.CLASS);
-    define(stmt.name, DeclarationKind.CLASS);
+    declare(stmt);
+    define(stmt);
 
     beginScope();
-    scopes.peek().put("this", new Declaration(VariableState.DEFINED, null, false, DeclarationKind.VARIABLE));
+    scopes.peek().put("this", new Declaration(VariableState.DEFINED, null, false));
 
-    for (Stmt.Var field : stmt.fields) {
-      visitVarStmt(field);
-    }
+    stmt.fields.forEach(field -> visitVarStmt(field));
 
-    for (Stmt.Function method : stmt.methods) {
+    stmt.methods.forEach(method -> {
+      declare(method);
+      define(method);
+    });
+
+    stmt.methods.forEach(method -> {
       FunctionType declaration = FunctionType.METHOD;
 
       if (method.name.lexeme.equals("init")) {
@@ -108,7 +109,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       }
 
       resolveFunction(method, declaration);
-    }
+    });
+
     endScope();
 
     currentClass = enclosingClass;
@@ -123,8 +125,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitFunctionStmt(Stmt.Function stmt) {
-    declare(stmt.name, DeclarationKind.FUNCTION);
-    define(stmt.name, DeclarationKind.FUNCTION);
+    declare(stmt);
+    define(stmt);
 
     resolveFunction(stmt, FunctionType.FUNCTION);
     return null;
@@ -171,11 +173,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitVarStmt(Stmt.Var stmt) {
-    declare(stmt.name, DeclarationKind.VARIABLE);
+    declare(stmt);
     if (stmt.initializer != null) {
       resolve(stmt.initializer);
     }
-    define(stmt.name, DeclarationKind.VARIABLE);
+    define(stmt);
     return null;
   }
 
@@ -288,6 +290,13 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     return null;
   }
 
+  @Override
+  public Void visitFunctionParameter(Stmt.FunctionParameter stmt) {
+    declare(stmt);
+    define(stmt);
+    return null;
+  }
+
   private void resolve(Stmt stmt) {
     stmt.accept(this);
   }
@@ -306,48 +315,74 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     scope.forEach((key, declaration) -> {
       String kind = "";
 
-      switch (declaration.kind) {
-        case FUNCTION:
+      if (declaration.declarator instanceof Stmt.Function) {
+        if (((Stmt.Function) declaration.declarator).isClassMember) {
+          kind = "instance method";
+        } else {
           kind = "function";
-          break;
-        case PARAMETER:
-          kind = "parameter";
-          break;
-        case VARIABLE:
+        }
+      } else if (declaration.declarator instanceof Stmt.FunctionParameter) {
+        kind = "parameter";
+      } else if (declaration.declarator instanceof Stmt.Var) {
+        if (((Stmt.Var) declaration.declarator).isClassMember) {
+          kind = "instance field";
+        } else {
           kind = "variable";
-          break;
+        }
+      } else if (declaration.declarator instanceof Stmt.Class) {
+        kind = "class";
       }
 
-      if (declaration.name != null && !declaration.isReferenced) {
-        Lox.error(declaration.name, "Unused " + kind + ".");
+      Token declName = null;
+
+      if (declaration.declarator != null) {
+        declName = declaration.getDeclaratorName();
+      }
+
+      if (declName != null && declaration.refs.size() == 0) {
+        // refactor: remove code redundancy
+        if (declaration.declarator instanceof Stmt.Var) {
+          Stmt.Var varDecl = (Stmt.Var) declaration.declarator;
+
+          if (!(varDecl.isClassMember && varDecl.visibility == Visibility.PRIVATE)) {
+            return;
+          }
+        } else if (declaration.declarator instanceof Stmt.Function) {
+          Stmt.Function varDecl = (Stmt.Function) declaration.declarator;
+
+          if (!(varDecl.isClassMember && varDecl.visibility == Visibility.PRIVATE)) {
+            return;
+          }
+        }
+        Lox.error(declName, "Unused " + kind + ".");
       }
     });
   }
 
-  private void declare(Token name, DeclarationKind kind) {
+  private void declare(IDeclarator decl) {
     if (scopes.isEmpty())
       return;
 
     Map<String, Declaration> scope = scopes.peek();
 
-    if (scope.containsKey(name.lexeme)) {
-      Lox.error(name, "Variable with this name already declared in this scope.");
+    if (scope.containsKey(decl.getName().lexeme)) {
+      Lox.error(decl.getName(), "Variable with this name already declared in this scope.");
     }
 
-    scope.put(name.lexeme, new Declaration(VariableState.DECLARED, name, false, kind));
+    scope.put(decl.getName().lexeme, new Declaration(VariableState.DECLARED, decl, false));
   }
 
-  private void define(Token name, DeclarationKind kind) {
+  private void define(IDeclarator decl) {
     if (scopes.isEmpty())
       return;
 
-    scopes.peek().put(name.lexeme, new Declaration(VariableState.DEFINED, name, false, kind));
+    scopes.peek().put(decl.getName().lexeme, new Declaration(VariableState.DEFINED, decl, false));
   }
 
   private void resolveLocal(Expr expr, Token name) {
     for (int i = scopes.size() - 1; i >= 0; i--) {
       if (scopes.get(i).containsKey(name.lexeme)) {
-        scopes.get(i).get(name.lexeme).isReferenced = true;
+        scopes.get(i).get(name.lexeme).refs.add(expr);
 
         return;
       }

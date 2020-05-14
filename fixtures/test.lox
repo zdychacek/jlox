@@ -1,38 +1,23 @@
-//var huhu;
-
 class Person {
-  var name = "noname";
-  var foo = 31;
-  var age = this.foo + this.getAge();
+  private var name = "huhu";
+  var age;
 
-  init(name_, age_) {
-    this.name = name_;
-    age = age_;
+  init() {
+    name;
   }
 
-  fn hello() {
-    print("Hello, my name is " + toString(name) + " and I am " + toString(this.age) + " years old.");
+  fn pubMethod () {
+    test();
   }
 
-  fn fork() {
-    (fn () {
-      print(this.name);
-      print(this.foo);
-    })();
-
-    return Person("Tereza", 30);
-  }
-
-  fn getAge() {
-    return getOne();
-
-  }
-  fn getOne() {
-    return 1;
+  private fn test () {
+    print("private");
   }
 }
 
-var me = Person("Ondrej", 32);
+var me = Person();
 
-me.hello();
-print(me.fork());
+me.name; // should error
+me.age; // should be OK
+me.test(); // should error
+print("swsd");

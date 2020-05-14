@@ -3,7 +3,7 @@ package jlox;
 import java.util.List;
 
 abstract class Stmt {
-  interface Visitor<R> {
+  interface IVisitor<R> {
     R visitBlockStmt(Block stmt);
 
     R visitClassStmt(Class stmt);
@@ -15,6 +15,8 @@ abstract class Stmt {
     R visitExpressionStmt(Expression stmt);
 
     R visitFunctionStmt(Function stmt);
+
+    R visitFunctionParameter(FunctionParameter stmt);
 
     R visitReturnStmt(Return stmt);
 
@@ -31,14 +33,14 @@ abstract class Stmt {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitBlockStmt(this);
     }
 
     final List<Stmt> statements;
   }
 
-  static class Class extends Stmt {
+  static class Class extends Stmt implements IDeclarator {
     Class(Token name, List<Stmt.Var> fields, List<Stmt.Function> methods) {
       this.name = name;
       this.fields = fields;
@@ -46,13 +48,23 @@ abstract class Stmt {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitClassStmt(this);
     }
 
     final Token name;
     final List<Stmt.Var> fields;
     final List<Stmt.Function> methods;
+
+    @Override
+    public Token getName() {
+      return name;
+    }
+
+    @Override
+    public Visibility getVisibility() {
+      return Visibility.UNSPECIFIED;
+    }
   }
 
   static class Break extends Stmt {
@@ -61,7 +73,7 @@ abstract class Stmt {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitBreakStmt(this);
     }
 
@@ -74,7 +86,7 @@ abstract class Stmt {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitContinueStmt(this);
     }
 
@@ -87,28 +99,43 @@ abstract class Stmt {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitExpressionStmt(this);
     }
 
     final Expr expression;
   }
 
-  static class Function extends Stmt {
-    Function(Token name, List<Token> params, List<Stmt> body) {
+  static class Function extends Stmt implements IDeclarator {
+    Function(Token name, List<FunctionParameter> params, List<Stmt> body, Visibility visibility,
+        boolean isClassMember) {
       this.name = name;
       this.params = params;
       this.body = body;
+      this.visibility = visibility;
+      this.isClassMember = isClassMember;
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitFunctionStmt(this);
     }
 
     final Token name;
-    final List<Token> params;
+    final List<FunctionParameter> params;
     final List<Stmt> body;
+    final Visibility visibility;
+    final boolean isClassMember;
+
+    @Override
+    public Token getName() {
+      return name;
+    }
+
+    @Override
+    public Visibility getVisibility() {
+      return Visibility.UNSPECIFIED;
+    }
   }
 
   static class Return extends Stmt {
@@ -118,7 +145,7 @@ abstract class Stmt {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitReturnStmt(this);
     }
 
@@ -134,7 +161,7 @@ abstract class Stmt {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitIfStmt(this);
     }
 
@@ -143,19 +170,33 @@ abstract class Stmt {
     final Stmt elseBranch;
   }
 
-  static class Var extends Stmt {
-    Var(Token name, Expr initializer) {
+  static class Var extends Stmt implements IDeclarator {
+    Var(Token name, Expr initializer, Visibility visibility, boolean isClassMember) {
       this.name = name;
       this.initializer = initializer;
+      this.visibility = visibility;
+      this.isClassMember = isClassMember;
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitVarStmt(this);
     }
 
     final Token name;
     final Expr initializer;
+    final Visibility visibility;
+    final boolean isClassMember;
+
+    @Override
+    public Token getName() {
+      return name;
+    }
+
+    @Override
+    public Visibility getVisibility() {
+      return visibility;
+    }
   }
 
   static class While extends Stmt {
@@ -165,7 +206,7 @@ abstract class Stmt {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitWhileStmt(this);
     }
 
@@ -173,5 +214,30 @@ abstract class Stmt {
     final Stmt body;
   }
 
-  abstract <R> R accept(Visitor<R> visitor);
+  static class FunctionParameter extends Stmt implements IDeclarator {
+    FunctionParameter(Token name, Expr initializer) {
+      this.name = name;
+      this.initializer = initializer;
+    }
+
+    @Override
+    <R> R accept(IVisitor<R> visitor) {
+      return visitor.visitFunctionParameter(this);
+    }
+
+    final Token name;
+    final Expr initializer;
+
+    @Override
+    public Token getName() {
+      return name;
+    }
+
+    @Override
+    public Visibility getVisibility() {
+      return Visibility.UNSPECIFIED;
+    }
+  }
+
+  abstract <R> R accept(IVisitor<R> visitor);
 }

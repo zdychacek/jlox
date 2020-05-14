@@ -6,12 +6,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+class Interpreter implements Expr.IVisitor<Object>, Stmt.IVisitor<Void> {
   private Environment globals = new Environment();
   private Environment environment = null;
 
   Interpreter() {
-    globals = globals.define("clock", new LoxCallable() {
+    globals = globals.define("clock", new ILoxCallable() {
       @Override
       public int arity() {
         return 0;
@@ -27,7 +27,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return "<native fn>";
       }
     });
-    globals = globals.define("toString", new LoxCallable() {
+    globals = globals.define("toString", new ILoxCallable() {
       @Override
       public int arity() {
         return 1;
@@ -43,7 +43,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return "<native fn>";
       }
     });
-    globals = globals.define("print", new LoxCallable() {
+    globals = globals.define("print", new ILoxCallable() {
       @Override
       public int arity() {
         return 1;
@@ -251,11 +251,11 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Object visitCallExpr(Expr.Call expr) {
     Object callee = evaluate(expr.callee);
 
-    if (!(callee instanceof LoxCallable)) {
+    if (!(callee instanceof ILoxCallable)) {
       throw new RuntimeError(expr.paren, "Can only call functions, methods and classes.");
     }
 
-    LoxCallable function = (LoxCallable) callee;
+    ILoxCallable function = (ILoxCallable) callee;
 
     List<Object> arguments = new ArrayList<>();
     for (Expr argument : expr.arguments) {
@@ -276,6 +276,15 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     if (object instanceof LoxInstance) {
       LoxInstance instance = (LoxInstance) object;
 
+      LoxFunction method = instance.getKlass().findMethod(expr.name.lexeme);
+      LoxField field = instance.getKlass().findField(expr.name.lexeme);
+
+      if (method != null && method.visibility == Visibility.PRIVATE
+          || field != null && field.visibility == Visibility.PRIVATE) {
+        throw new RuntimeError(expr.name, "Property '" + expr.name.lexeme
+            + "' is private and only accessible within class '" + instance.getKlass().name + "'.");
+      }
+
       try {
         return instance.get(expr.name);
       } catch (RuntimeError error) {
@@ -289,14 +298,19 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitFunctionStmt(Stmt.Function stmt) {
-    LoxFunction function = new LoxFunction(stmt.name, stmt.params, stmt.body, environment, false);
+    LoxFunction function = new LoxFunction(stmt.name, stmt.params, stmt.body, environment, false, stmt.visibility);
     environment = environment.define(stmt.name.lexeme, function);
     return null;
   }
 
   @Override
+  public Void visitFunctionParameter(Stmt.FunctionParameter stmt) {
+    return null;
+  }
+
+  @Override
   public Object visitFunctionExpr(Expr.Function expr) {
-    return new LoxFunction(expr.name, expr.params, expr.body, environment, false);
+    return new LoxFunction(expr.name, expr.params, expr.body, environment, false, Visibility.UNSPECIFIED);
   }
 
   @Override
@@ -332,18 +346,20 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     environment = new Environment(environment);
 
-    Map<String, Stmt.Var> fields = new LinkedHashMap<>();
+    Map<String, LoxField> fields = new LinkedHashMap<>();
 
     stmt.fields.forEach(field -> {
-      fields.put(field.name.lexeme, field);
+      fields.put(field.name.lexeme, new LoxField(field));
     });
 
     Map<String, LoxFunction> methods = new HashMap<>();
-    for (Stmt.Function method : stmt.methods) {
+
+    stmt.methods.forEach(method -> {
       LoxFunction function = new LoxFunction(method.name, method.params, method.body, environment,
-          method.name.lexeme.equals("init"));
+          method.name.lexeme.equals("init"), method.visibility);
+
       methods.put(method.name.lexeme, function);
-    }
+    });
 
     LoxClass klass = new LoxClass(stmt.name.lexeme, fields, methods);
 

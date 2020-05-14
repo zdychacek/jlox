@@ -35,9 +35,9 @@ class Parser {
       if (match(CLASS))
         return classDeclaration();
       if (match(VAR))
-        return varDeclaration();
+        return varDeclaration(Visibility.UNSPECIFIED, false);
       if (match(FN))
-        return functionStatement("function");
+        return functionStatement("function", Visibility.UNSPECIFIED, false);
 
       return statement();
     } catch (ParseError error) {
@@ -54,19 +54,41 @@ class Parser {
     List<Stmt.Var> fields = new ArrayList<>();
 
     while (!check(RIGHT_BRACE) && !isAtEnd()) {
-      if (match(VAR)) {
-        fields.add(varDeclaration());
+      if (match(PRIVATE, PUBLIC)) {
+        Visibility visibility = previous().type == PRIVATE ? Visibility.PRIVATE : Visibility.PUBLIC;
+
+        if (peek().type == TokenType.IDENTIFIER && peek().lexeme.equals("init")) {
+          methods.add(functionStatement("method", visibility, true));
+        } else {
+          advance(); // eat VAR or FN token
+
+          if (previous().type == VAR) {
+            fields.add(varDeclaration(visibility, true));
+          } else if (previous().type == FN) {
+            // refactor: remove code redundancy
+            if (peek().lexeme.equals("init")) {
+              Lox.error(previous(), "Constructor must be defined without `fn` prefix.");
+            } else {
+              methods.add(functionStatement("method", visibility, true));
+            }
+          } else {
+            Lox.error(previous(), "Expect method or field declaration.");
+            return null;
+          }
+        }
+      } else if (match(VAR)) {
+        fields.add(varDeclaration(Visibility.PUBLIC, true));
       } else if (match(FN)) {
         if (peek().lexeme.equals("init")) {
           Lox.error(previous(), "Constructor must be defined without `fn` prefix.");
         } else {
-          methods.add(functionStatement("method"));
+          methods.add(functionStatement("method", Visibility.UNSPECIFIED, true));
         }
       } else if (peek().type == TokenType.IDENTIFIER && peek().lexeme.equals("init"))
-        methods.add(functionStatement("method"));
+        methods.add(functionStatement("method", Visibility.UNSPECIFIED, true));
       else {
         // TODO: fix synchronization
-        Lox.error(peek(), "Expect constructor, method or field definition.");
+        Lox.error(peek(), "Expect constructor, method or field declaration.");
         return null;
       }
     }
@@ -118,7 +140,7 @@ class Parser {
     if (match(SEMICOLON)) {
       initializer = null;
     } else if (match(VAR)) {
-      initializer = varDeclaration();
+      initializer = varDeclaration(Visibility.UNSPECIFIED, false);
     } else {
       initializer = expressionStatement();
     }
@@ -178,7 +200,7 @@ class Parser {
     return new Stmt.Return(keyword, value);
   }
 
-  private Stmt.Var varDeclaration() {
+  private Stmt.Var varDeclaration(Visibility visibility, boolean isClassMember) {
     Token name = consume(IDENTIFIER, "Expect variable name.");
 
     Expr initializer = null;
@@ -187,7 +209,7 @@ class Parser {
     }
 
     consume(SEMICOLON, "Expect ';' after variable declaration.");
-    return new Stmt.Var(name, initializer);
+    return new Stmt.Var(name, initializer, visibility, isClassMember);
   }
 
   private Stmt whileStatement() {
@@ -206,34 +228,34 @@ class Parser {
     return new Stmt.Expression(expr);
   }
 
-  private List<Token> parseFunctionParams() {
-    List<Token> parameters = new ArrayList<>();
+  private List<Stmt.FunctionParameter> parseFunctionParams() {
+    List<Stmt.FunctionParameter> parameters = new ArrayList<>();
     if (!check(RIGHT_PAREN)) {
       do {
         if (parameters.size() >= 255) {
           error(peek(), "Cannot have more than 255 parameters.");
         }
 
-        parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+        parameters.add(new Stmt.FunctionParameter(consume(IDENTIFIER, "Expect parameter name."), null));
       } while (match(COMMA));
     }
 
     return parameters;
   }
 
-  private Stmt.Function functionStatement(String kind) {
+  private Stmt.Function functionStatement(String kind, Visibility visibility, boolean isClassMember) {
     Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
 
     consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
 
-    List<Token> params = parseFunctionParams();
+    List<Stmt.FunctionParameter> params = parseFunctionParams();
 
     consume(RIGHT_PAREN, "Expect ')' after parameters.");
 
     consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
     List<Stmt> body = block();
 
-    return new Stmt.Function(name, params, body);
+    return new Stmt.Function(name, params, body, visibility, isClassMember);
   }
 
   private Expr.Function functionExpression() {
@@ -245,7 +267,7 @@ class Parser {
 
     consume(LEFT_PAREN, "Expect '(' after function name.");
 
-    List<Token> params = parseFunctionParams();
+    List<Stmt.FunctionParameter> params = parseFunctionParams();
 
     consume(RIGHT_PAREN, "Expect ')' after parameters.");
 

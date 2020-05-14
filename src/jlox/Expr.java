@@ -3,7 +3,7 @@ package jlox;
 import java.util.List;
 
 abstract class Expr {
-  interface Visitor<R> {
+  interface IVisitor<R> {
     R visitAssignExpr(Assign expr);
 
     R visitBinaryExpr(Binary expr);
@@ -36,7 +36,7 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitAssignExpr(this);
     }
 
@@ -52,7 +52,7 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitBinaryExpr(this);
     }
 
@@ -69,7 +69,7 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitCallExpr(this);
     }
 
@@ -85,7 +85,7 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitGetExpr(this);
     }
 
@@ -94,19 +94,19 @@ abstract class Expr {
   }
 
   static class Function extends Expr {
-    Function(Token name, List<Token> params, List<Stmt> body) {
+    Function(Token name, List<Stmt.FunctionParameter> params, List<Stmt> body) {
       this.name = name;
       this.params = params;
       this.body = body;
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitFunctionExpr(this);
     }
 
     final Token name;
-    final List<Token> params;
+    final List<Stmt.FunctionParameter> params;
     final List<Stmt> body;
   }
 
@@ -116,7 +116,7 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitGroupingExpr(this);
     }
 
@@ -129,7 +129,7 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitLiteralExpr(this);
     }
 
@@ -144,7 +144,7 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitLogicalExpr(this);
     }
 
@@ -161,7 +161,7 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitSetExpr(this);
     }
 
@@ -176,7 +176,7 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitThisExpr(this);
     }
 
@@ -190,7 +190,7 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitUnaryExpr(this);
     }
 
@@ -204,12 +204,12 @@ abstract class Expr {
     }
 
     @Override
-    <R> R accept(Visitor<R> visitor) {
+    <R> R accept(IVisitor<R> visitor) {
       return visitor.visitVariableExpr(this);
     }
 
     final Token name;
   }
 
-  abstract <R> R accept(Visitor<R> visitor);
+  abstract <R> R accept(IVisitor<R> visitor);
 }

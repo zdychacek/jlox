@@ -28,6 +28,8 @@ class Scanner {
     keywords.put("if", IF);
     keywords.put("nil", NIL);
     keywords.put("or", OR);
+    keywords.put("private", PRIVATE);
+    keywords.put("public", PUBLIC);
     keywords.put("return", RETURN);
     keywords.put("super", SUPER);
     keywords.put("this", THIS);

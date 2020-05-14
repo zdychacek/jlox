@@ -1,7 +1,7 @@
 package jlox;
 
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 class LoxInstance {
   private LoxClass klass;
@@ -14,13 +14,12 @@ class LoxInstance {
     env = new Environment(interpreter.getEnvironment(), true);
     env.define("this", this);
 
-    for (Map.Entry<String, LoxFunction> entry : klass.getMethods().entrySet()) {
-      env.define(entry.getKey(), entry.getValue());
-    }
+    klass.getMethods().entrySet().forEach(entry -> env.define(entry.getKey(), entry.getValue()));
 
     Environment prevEnv = interpreter.setEnvironment(env);
 
-    interpreter.interpret(new ArrayList<>(klass.getFields().values()));
+    interpreter.interpret(
+        new ArrayList<Stmt>(klass.getFields().values().stream().map(field -> field.stmt).collect(Collectors.toList())));
 
     interpreter.setEnvironment(prevEnv);
   }
@@ -44,7 +43,7 @@ class LoxInstance {
   }
 
   Environment getEnvironment() {
-    return this.env;
+    return env;
   }
 
   LoxClass getKlass() {

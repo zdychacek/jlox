@@ -2,23 +2,26 @@ package jlox;
 
 import java.util.List;
 
-class LoxFunction implements LoxCallable {
-  private final Token name;
-  private final List<Token> params;
-  private final List<Stmt> body;
-  private final Environment closure;
-  private final boolean isInitializer;
+class LoxFunction implements ILoxCallable {
+  final Token name;
+  final List<Stmt.FunctionParameter> params;
+  final List<Stmt> body;
+  final Environment closure;
+  final boolean isInitializer;
+  final Visibility visibility;
 
-  LoxFunction(Token name, List<Token> params, List<Stmt> body, Environment closure, boolean isInitializer) {
+  LoxFunction(Token name, List<Stmt.FunctionParameter> params, List<Stmt> body, Environment closure,
+      boolean isInitializer, Visibility visibility) {
     this.isInitializer = isInitializer;
     this.closure = closure;
     this.name = name;
     this.params = params;
     this.body = body;
+    this.visibility = visibility;
   }
 
   LoxFunction bind(LoxInstance instance) {
-    return new LoxFunction(name, params, body, instance.getEnvironment(), isInitializer);
+    return new LoxFunction(name, params, body, instance.getEnvironment(), isInitializer, visibility);
   }
 
   @Override
@@ -31,7 +34,7 @@ class LoxFunction implements LoxCallable {
     Environment environment = new Environment(closure);
 
     for (int i = 0; i < params.size(); i++) {
-      environment = environment.define(params.get(i).lexeme, arguments.get(i));
+      environment = environment.define(params.get(i).name.lexeme, arguments.get(i));
     }
 
     try {

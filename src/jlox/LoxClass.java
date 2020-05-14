@@ -3,12 +3,12 @@ package jlox;
 import java.util.List;
 import java.util.Map;
 
-class LoxClass implements LoxCallable {
+class LoxClass implements ILoxCallable {
   final String name;
   private final Map<String, LoxFunction> methods;
-  private final Map<String, Stmt.Var> fields;
+  private final Map<String, LoxField> fields;
 
-  LoxClass(String name, Map<String, Stmt.Var> fields, Map<String, LoxFunction> methods) {
+  LoxClass(String name, Map<String, LoxField> fields, Map<String, LoxFunction> methods) {
     this.name = name;
     this.fields = fields;
     this.methods = methods;
@@ -22,7 +22,7 @@ class LoxClass implements LoxCallable {
     return null;
   }
 
-  Stmt.Var findField(String name) {
+  LoxField findField(String name) {
     if (fields.containsKey(name)) {
       return fields.get(name);
     }
@@ -30,7 +30,7 @@ class LoxClass implements LoxCallable {
     return null;
   }
 
-  Map<String, Stmt.Var> getFields() {
+  Map<String, LoxField> getFields() {
     return fields;
   }
 
